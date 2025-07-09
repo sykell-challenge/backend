@@ -14,7 +14,16 @@ import (
 func (h *UserHandler) LoginUser(c *gin.Context) {
 	var req models.UserLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// Provide human-readable error messages
+		if req.Username == "" && req.Password == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username and password are required"})
+		} else if req.Username == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username is required"})
+		} else if req.Password == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Password is required"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		}
 		return
 	}
 

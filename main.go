@@ -7,6 +7,7 @@ import (
 	"sykell-challenge/backend/db"
 	"sykell-challenge/backend/handlers/url"
 	"sykell-challenge/backend/handlers/user"
+	"sykell-challenge/backend/utils/crawl"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -47,28 +48,29 @@ func main() {
 	// Protected routes (require JWT authentication)
 	protected := router.Group("/")
 	protected.Use(auth.JWTMiddleware())
-	{
-		// URL routes (protected)
-		protected.GET("/urls", urlHandler.GetURLs)
-		protected.GET("/urls/search", urlHandler.SearchURLByString)
-		protected.GET("/urls/search/fuzzy", urlHandler.FuzzySearchURLs)
-		protected.GET("/urls/stats", urlHandler.GetURLStats)
-		protected.GET("/urls/:id", urlHandler.GetURLByID)
-		protected.GET("/urls/:id/links", urlHandler.GetURLLinks)
-		protected.GET("/urls/:id/links/internal", urlHandler.GetURLInternalLinks)
-		protected.GET("/urls/:id/links/external", urlHandler.GetURLExternalLinks)
-		protected.GET("/urls/:id/links/broken", urlHandler.GetURLBrokenLinks)
-		protected.POST("/urls", urlHandler.CreateURL)
-		protected.PUT("/urls/:id", urlHandler.UpdateURL)
-		protected.PATCH("/urls/:id/status", urlHandler.UpdateURLStatus)
-		protected.DELETE("/urls/:id", urlHandler.DeleteURL)
 
-		// User routes (protected)
-		protected.GET("/users", userHandler.GetUsers)
-		protected.GET("/users/:id", userHandler.GetUserByID)
-		protected.PUT("/users/:id", userHandler.UpdateUser)
-		protected.DELETE("/users/:id", userHandler.DeleteUser)
-	}
+	// URL routes (protected)
+	protected.GET("/urls", urlHandler.GetURLs)
+	protected.GET("/urls/search", urlHandler.SearchURLByString)
+	protected.GET("/urls/search/fuzzy", urlHandler.FuzzySearchURLs)
+	protected.GET("/urls/stats", urlHandler.GetURLStats)
+	protected.GET("/urls/:id", urlHandler.GetURLByID)
+	protected.GET("/urls/:id/links", urlHandler.GetURLLinks)
+	protected.GET("/urls/:id/links/internal", urlHandler.GetURLInternalLinks)
+	protected.GET("/urls/:id/links/external", urlHandler.GetURLExternalLinks)
+	protected.GET("/urls/:id/links/broken", urlHandler.GetURLBrokenLinks)
+	protected.POST("/urls", urlHandler.CreateURL)
+	protected.PUT("/urls/:id", urlHandler.UpdateURL)
+	protected.PATCH("/urls/:id/status", urlHandler.UpdateURLStatus)
+	protected.DELETE("/urls/:id", urlHandler.DeleteURL)
+
+	// User routes (protected)
+	protected.GET("/users/:id", userHandler.GetUserByID)
+	protected.PUT("/users/:id", userHandler.UpdateUser)
+	protected.DELETE("/users/:id", userHandler.DeleteUser)
+
+	// Crawl routes (protected)
+	protected.POST("/crawl", crawl.CrawlURL)
 
 	router.Run("0.0.0.0:8080")
 }
