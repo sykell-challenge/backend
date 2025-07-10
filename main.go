@@ -5,8 +5,10 @@ import (
 	"strings"
 	"sykell-challenge/backend/auth"
 	"sykell-challenge/backend/db"
+	crawlHandler "sykell-challenge/backend/handlers/crawl"
 	"sykell-challenge/backend/handlers/url"
 	"sykell-challenge/backend/handlers/user"
+	"sykell-challenge/backend/services/socket"
 	"sykell-challenge/backend/utils/crawl"
 
 	"github.com/gin-contrib/cors"
@@ -16,6 +18,9 @@ import (
 func main() {
 	database := db.GetDB()
 	db.Migrate()
+
+	// Initialize crawl manager with database connection
+	crawl.InitializeCrawlManager(database)
 
 	// Initialize handlers
 	urlHandler := url.NewURLHandler(database)
@@ -70,7 +75,18 @@ func main() {
 	protected.DELETE("/users/:id", userHandler.DeleteUser)
 
 	// Crawl routes (protected)
-	protected.POST("/crawl", crawl.CrawlURL)
+	protected.POST("/crawl", crawlHandler.HandleCrawlURL)
+	protected.GET("/crawl/:jobId", crawlHandler.HandleGetCrawlStatus)
+	protected.GET("/crawl/:jobId/url", crawlHandler.HandleGetURLByJobID)
+	protected.DELETE("/crawl/:jobId", crawlHandler.HandleCancelCrawl)
+	protected.GET("/crawl", crawlHandler.HandleListActiveJobs)
+	protected.GET("/crawl-history", crawlHandler.HandleGetJobHistory)
+	protected.GET("/crawl-stats", crawlHandler.HandleGetJobStats)
+	protected.GET("/crawl/by-url/:urlId", crawlHandler.HandleGetJobsByURL)
+
+	server := socket.InitSocketServer()
+
+	router.Any("/socket.io/*any", gin.WrapH(server.ServeHandler(nil)))
 
 	router.Run("0.0.0.0:8080")
 }

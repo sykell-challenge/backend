@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crawl Job Socket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .event { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .queued { background-color: #e3f2fd; }
+        .started { background-color: #fff3e0; }
+        .half_completed { background-color: #f3e5f5; }
+        .completed { background-color: #e8f5e8; }
+        .error { background-color: #ffebee; }
+        .cancelled { background-color: #f3e5f5; }
+        #log { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+        .timestamp { font-weight: bold; color: #666; }
+    </style>
+</head>
+<body>
+    <h1>Crawl Job Socket Events Test</h1>
+    <p>Connect to your backend server and monitor crawl job events in real-time.</p>
+    
+    <div>
+        <button onclick="connectSocket()">Connect to Socket</button>
+        <button onclick="disconnectSocket()">Disconnect</button>
+        <button onclick="clearLog()">Clear Log</button>
+        <span id="connectionStatus">Disconnected</span>
+    </div>
+
+    <div id="log"></div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        let socket = null;
+        const log = document.getElementById('log');
+        const statusEl = document.getElementById('connectionStatus');
+
+        function addToLog(message, className = '') {
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `event ${className}`;
+            div.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function connectSocket() {
+            if (socket && socket.connected) {
+                addToLog('Already connected');
+                return;
+            }
+
+            // Update this URL to match your backend server
+            socket = io('http://localhost:8080');
+
+            socket.on('connect', () => {
+                statusEl.textContent = 'Connected';
+                statusEl.style.color = 'green';
+                addToLog('Connected to socket server', 'completed');
+            });
+
+            socket.on('disconnect', () => {
+                statusEl.textContent = 'Disconnected';
+                statusEl.style.color = 'red';
+                addToLog('Disconnected from socket server', 'error');
+            });
+
+            socket.on('crawl_queued', (data) => {
+                addToLog(`Job queued: ${data.url} (Job ID: ${data.jobId}, URL ID: ${data.url_id})`, 'queued');
+            });
+
+            socket.on('crawl_started', (data) => {
+                addToLog(`Job started: ${data.url} (Job ID: ${data.jobId})`, 'started');
+            });
+
+            socket.on('crawl_half_completed', (data) => {
+                const message = `Job half completed: ${data.url}<br>
+                    &nbsp;&nbsp;Title: ${data.title || 'N/A'}<br>
+                    &nbsp;&nbsp;Status Code: ${data.status_code}<br>
+                    &nbsp;&nbsp;Tags: ${data.tags_count}<br>
+                    &nbsp;&nbsp;Links Found: ${data.links_count} (processing...)<br>
+                    &nbsp;&nbsp;Login Form: ${data.login_form}`;
+                addToLog(message, 'half_completed');
+            });
+
+            socket.on('crawl_completed', (data) => {
+                const message = `Job completed: ${data.url}<br>
+                    &nbsp;&nbsp;Title: ${data.title || 'N/A'}<br>
+                    &nbsp;&nbsp;Status Code: ${data.status_code}<br>
+                    &nbsp;&nbsp;Links: ${data.links_count}<br>
+                    &nbsp;&nbsp;Tags: ${data.tags_count}<br>
+                    &nbsp;&nbsp;Login Form: ${data.login_form}`;
+                    console.log(data);
+                addToLog(JSON.stringify(data), 'completed');
+            });
+
+            socket.on('crawl_error', (data) => {
+                addToLog(`Job error: ${data.url}<br>&nbsp;&nbsp;Error: ${data.error}`, 'error');
+            });
+
+            socket.on('crawl_cancelled', (data) => {
+                addToLog(`Job cancelled: ${data.url} (Job ID: ${data.jobId})`, 'cancelled');
+            });
+
+            socket.on('connect_error', (error) => {
+                addToLog(`Connection error: ${error.message}`, 'error');
+            });
+        }
+
+        function disconnectSocket() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function clearLog() {
+            log.innerHTML = '';
+        }
+
+        // Auto-connect on page load
+        window.onload = () => {
+            connectSocket();
+        };
+    </script>
+</body>
+</html>

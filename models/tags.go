@@ -7,7 +7,7 @@ import (
 )
 
 type Tag struct {
-	TagName string `json:"tag_name"`
+	TagName string `json:"tagName"`
 	Count   int    `json:"count"`
 }
 

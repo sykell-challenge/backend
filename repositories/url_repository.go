@@ -213,3 +213,12 @@ func (r *URLRepository) SearchURLs(query string, limit int) ([]models.URL, error
 
 	return urls, err
 }
+
+func (r *URLRepository) GetByCrawlJobID(crawlJobID string) (*models.URL, error) {
+	var url models.URL
+	err := r.db.Where("crawl_jobId = ?", crawlJobID).First(&url).Error
+	if err != nil {
+		return nil, err
+	}
+	return &url, nil
+}
