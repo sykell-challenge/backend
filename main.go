@@ -17,7 +17,7 @@ import (
 
 func main() {
 	database := db.GetDB()
-	db.Migrate()
+	db.MigrateAll()
 
 	// Initialize crawl manager with database connection
 	crawl.InitializeCrawlManager(database)
