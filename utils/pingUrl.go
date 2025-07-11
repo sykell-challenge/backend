@@ -123,7 +123,7 @@ func PingURL(targetURL string, options ...PingURLOptions) PingURLResult {
 }
 
 // IsURLAvailable is a simple convenience function that returns just the availability status
-func IsURLAvailable(targetURL string) bool {
+func IsURLAvailable(targetURL string) (bool, int) {
 	result := PingURL(targetURL)
-	return result.Available
+	return result.Available, result.StatusCode
 }

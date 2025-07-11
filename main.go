@@ -1,15 +1,22 @@
 package main
 
 import (
+	"context"
+	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
+
 	"sykell-challenge/backend/auth"
 	"sykell-challenge/backend/db"
-	crawlHandler "sykell-challenge/backend/handlers/crawl"
+	"sykell-challenge/backend/handlers/crawl"
 	"sykell-challenge/backend/handlers/url"
 	"sykell-challenge/backend/handlers/user"
 	"sykell-challenge/backend/services/socket"
-	"sykell-challenge/backend/utils/crawl"
+	"sykell-challenge/backend/services/taskq"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -19,12 +26,13 @@ func main() {
 	database := db.GetDB()
 	db.MigrateAll()
 
-	// Initialize crawl manager with database connection
-	crawl.InitializeCrawlManager(database)
+	// Initialize task queue for background crawling
+	taskq.InitTaskQueue()
 
 	// Initialize handlers
 	urlHandler := url.NewURLHandler(database)
 	userHandler := user.NewUserHandler(database)
+	crawlHandler := crawl.NewCrawlHandler(database)
 
 	router := gin.Default()
 
@@ -76,17 +84,42 @@ func main() {
 
 	// Crawl routes (protected)
 	protected.POST("/crawl", crawlHandler.HandleCrawlURL)
-	protected.GET("/crawl/:jobId", crawlHandler.HandleGetCrawlStatus)
-	protected.GET("/crawl/:jobId/url", crawlHandler.HandleGetURLByJobID)
 	protected.DELETE("/crawl/:jobId", crawlHandler.HandleCancelCrawl)
-	protected.GET("/crawl", crawlHandler.HandleListActiveJobs)
-	protected.GET("/crawl-history", crawlHandler.HandleGetJobHistory)
-	protected.GET("/crawl-stats", crawlHandler.HandleGetJobStats)
-	protected.GET("/crawl/by-url/:urlId", crawlHandler.HandleGetJobsByURL)
+	protected.GET("/crawl-history", crawlHandler.HandleGetAllCrawlJobs)
 
 	server := socket.InitSocketServer()
 
 	router.Any("/socket.io/*any", gin.WrapH(server.ServeHandler(nil)))
 
-	router.Run("0.0.0.0:8080")
+	// Create HTTP server
+	srv := &http.Server{
+		Addr:    "0.0.0.0:8080",
+		Handler: router,
+	}
+
+	// Start server in a goroutine
+	go func() {
+		log.Println("Server starting on :8080")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("Server failed to start:", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	// Shutdown task queue first
+	taskq.ShutdownTaskQueue()
+
+	// Shutdown HTTP server
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exited")
 }

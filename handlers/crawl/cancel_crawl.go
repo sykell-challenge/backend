@@ -1,37 +1,80 @@
 package crawl
 
 import (
+	"log"
+	"net/http"
+	"sykell-challenge/backend/db"
+	"sykell-challenge/backend/repositories"
+	"sykell-challenge/backend/services/socket"
+	"sykell-challenge/backend/services/taskq"
+
 	"github.com/gin-gonic/gin"
 )
 
-func HandleCancelCrawl(g *gin.Context) {
-	jobID := getJobIDParam(g)
+func (h *CrawlHandler) HandleCancelCrawl(g *gin.Context) {
+	jobID := g.Param("jobId")
 
-	crawlManager := getCrawlManagerOrError(g)
-	if crawlManager == nil {
+	if jobID == "" {
+		g.JSON(http.StatusBadRequest, gin.H{"error": "Job ID is required"})
 		return
 	}
 
-	success := crawlManager.CancelJob(jobID)
-	if !success {
-		// Check if job exists in database but not in memory (already completed)
-		if crawlJobRecord, err := crawlManager.GetCrawlJobRepo().GetByJobID(jobID); err == nil {
-			if crawlJobRecord.IsActive() {
-				// Update status to cancelled in database
-				crawlJobRecord.SetCancelled()
-				crawlManager.GetCrawlJobRepo().Update(crawlJobRecord)
+	// Initialize database and repositories
+	database := db.GetDB()
+	urlRepo := repositories.NewURLRepository(database)
 
-				// Also update URL status
-				if urlRecord, err := crawlManager.GetURLRepo().GetByCrawlJobID(jobID); err == nil {
-					crawlManager.GetURLRepo().UpdateStatus(urlRecord.ID, "error")
-				}
-			}
-			g.JSON(200, gin.H{"message": "Crawl job was already completed, status updated in database"})
-			return
+	// Find the URL record by job ID
+	urlRecord, err := urlRepo.GetByJobID(jobID)
+	if err != nil {
+		g.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
+		return
+	}
+
+	// Check if the job is cancellable
+	if urlRecord.Status == "done" {
+		g.JSON(http.StatusConflict, gin.H{"error": "Job already completed"})
+		return
+	}
+
+	if urlRecord.Status == "cancelled" {
+		g.JSON(http.StatusConflict, gin.H{"error": "Job already cancelled"})
+		return
+	}
+
+	if urlRecord.Status == "error" {
+		g.JSON(http.StatusConflict, gin.H{"error": "Job already failed"})
+		return
+	}
+
+	// Try to cancel the running job
+	if urlRecord.Status == "running" {
+		if taskq.CancelJob(jobID) {
+			// Job was running and successfully cancelled
+			log.Printf("Cancelled running job: %s", jobID)
+		} else {
+			// Job might have just finished or wasn't found in running jobs
+			log.Printf("Job not found in running jobs, updating status anyway: %s", jobID)
 		}
-		sendNotFoundError(g, "Crawl job not found")
+	}
+
+	// Update URL status to cancelled
+	if err := urlRepo.UpdateStatus(urlRecord.ID, "cancelled"); err != nil {
+		g.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update job status"})
 		return
 	}
 
-	g.JSON(200, gin.H{"message": "Crawl job cancelled successfully"})
+	// Broadcast cancellation
+	socket.BroadcastCrawlUpdate("crawl_cancelled", map[string]interface{}{
+		"jobId":  jobID,
+		"url":    urlRecord.URL,
+		"url_id": urlRecord.ID,
+		"status": "cancelled",
+	})
+
+	g.JSON(http.StatusOK, gin.H{
+		"message": "Job cancelled successfully",
+		"job_id":  jobID,
+		"url_id":  urlRecord.ID,
+		"status":  "cancelled",
+	})
 }

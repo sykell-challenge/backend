@@ -1,4 +1,19 @@
 package crawl
 
-// This file serves as the main package file for the crawl handlers.
-// Individual handler functions are organized in separate files for better maintainability.
+import (
+	"sykell-challenge/backend/repositories"
+
+	"gorm.io/gorm"
+)
+
+func NewCrawlHandler(db *gorm.DB) *CrawlHandler {
+	return &CrawlHandler{
+		db:      db,
+		urlRepo: repositories.NewURLRepository(db),
+	}
+}
+
+type CrawlHandler struct {
+	db      *gorm.DB
+	urlRepo *repositories.URLRepository
+}

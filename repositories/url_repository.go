@@ -62,6 +62,15 @@ func (r *URLRepository) GetByURL(urlString string) (*models.URL, error) {
 	return &url, nil
 }
 
+func (r *URLRepository) GetByJobID(jobID string) (*models.URL, error) {
+	var url models.URL
+	err := r.db.Where("crawl_job_id = ?", jobID).First(&url).Error
+	if err != nil {
+		return nil, err
+	}
+	return &url, nil
+}
+
 func (r *URLRepository) Count() (int64, error) {
 	var count int64
 	err := r.db.Model(&models.URL{}).Count(&count).Error

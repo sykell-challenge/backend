@@ -21,7 +21,7 @@ func (h *URLHandler) GetURLs(c *gin.Context) {
 	if params.Page < 1 {
 		params.Page = 1
 	}
-	if params.Limit < 1 || params.Limit > 100 {
+	if params.Limit < 1 {
 		params.Limit = 10
 	}
 

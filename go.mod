@@ -3,6 +3,7 @@ module sykell-challenge/backend
 go 1.24.4
 
 require (
+	github.com/antonmashko/taskq v1.2.5
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.10.1
 	github.com/gocolly/colly v1.2.0
