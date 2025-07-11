@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// HandleError handles common error types and returns appropriate HTTP responses
 func HandleError(c *gin.Context, err error, defaultMessage string) {
 	if err == gorm.ErrRecordNotFound {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resource not found"})
@@ -31,7 +30,6 @@ func HandleError(c *gin.Context, err error, defaultMessage string) {
 	}
 }
 
-// HandleValidationError handles validation errors
 func HandleValidationError(c *gin.Context, err error) {
 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 }
