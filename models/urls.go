@@ -14,5 +14,5 @@ type URL struct {
 	LoginForm   bool   `json:"login_form" gorm:"default:false"`
 	Tags        Tags   `json:"tags" gorm:"type:json"`
 	Links       Links  `json:"links" gorm:"type:json"`
-	CrawlJobID  string `json:"crawl_jobId" gorm:"index"` // ID of the channel/goroutine running the crawl
+	JobId       string `json:"jobId" gorm:"index"` // ID of the channel/goroutine running the crawl
 }

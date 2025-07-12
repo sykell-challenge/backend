@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sykell-challenge/backend/models"
@@ -58,6 +59,10 @@ func (r *URLRepository) GetByURL(urlString string) (*models.URL, error) {
 	err := r.db.Where("url = ?", urlString).First(&url).Error
 	if err != nil {
 		return nil, err
+	}
+
+	if url.URL != urlString {
+		return nil, errors.New("Not found!")
 	}
 	return &url, nil
 }

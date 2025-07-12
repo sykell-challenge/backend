@@ -63,9 +63,9 @@ func (r *CrawlJobRepository) GetJobsCreatedAfter(after time.Time) ([]models.Craw
 	return jobs, err
 }
 
-func (r *CrawlJobRepository) GetJobHistory(limit int) ([]models.CrawlJob, error) {
+func (r *CrawlJobRepository) GetJobHistory() ([]models.CrawlJob, error) {
 	var jobs []models.CrawlJob
-	err := r.db.Order("created_at DESC").Limit(limit).Find(&jobs).Error
+	err := r.db.Order("created_at DESC").Find(&jobs).Error
 	return jobs, err
 }
 

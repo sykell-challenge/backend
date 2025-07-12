@@ -30,12 +30,6 @@ func ValidateUserCreateRequest(req models.UserCreateRequest) error {
 	if req.Password == "" {
 		return errors.New("password is required")
 	}
-	if req.FirstName == "" {
-		return errors.New("first name is required")
-	}
-	if req.LastName == "" {
-		return errors.New("last name is required")
-	}
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"log"
 	"net/http"
 	"sykell-challenge/backend/repositories"
 
@@ -11,11 +12,11 @@ import (
 func (h *CrawlHandler) HandleGetAllCrawlJobs(c *gin.Context) {
 	repo := repositories.NewCrawlJobRepository(h.db)
 
-	jobs, err := repo.GetJobHistory(100) // limit to 100 most recent jobs
+	jobs, err := repo.GetJobHistory()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
+	log.Printf("jobs %v", jobs)
 	c.JSON(http.StatusOK, jobs)
 }
