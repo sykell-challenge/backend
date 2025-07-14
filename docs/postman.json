@@ -1,0 +1,582 @@
+{
+	"info": {
+		"_postman_id": "5e3616ea-7311-43be-9bec-73d3b3494783",
+		"name": "Sykell Challenge API",
+		"description": "Complete API collection for the Sykell Challenge backend with JWT authentication",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "25810722",
+		"_collection_link": "https://cloudy-meadow-462700.postman.co/workspace/Sykell~e8714dc4-23d4-4772-b33c-783e5803336d/collection/25810722-5e3616ea-7311-43be-9bec-73d3b3494783?action=share&source=collection_link&creator=25810722"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
+						},
+						"url": "{{baseUrl}}/users"
+					},
+					"response": []
+				},
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    pm.collectionVariables.set('jwtToken', responseJson.token);",
+									"    pm.test('JWT token saved', function () {",
+									"        pm.expect(responseJson.token).to.be.a('string');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": "{{baseUrl}}/users/login"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users (Protected)",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users?limit=10&offset=0",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/users/1"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"first_name\": \"Updated\",\n  \"last_name\": \"Name\",\n  \"email\": \"updated@example.com\"\n}"
+						},
+						"url": "{{baseUrl}}/users/1"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/users/1"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "URLs (Protected)",
+			"item": [
+				{
+					"name": "Get All URLs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/urls",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"urls"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"disabled": true
+								},
+								{
+									"key": "status",
+									"value": "queued",
+									"description": "Filter by status: queued, running, done, error",
+									"disabled": true
+								},
+								{
+									"key": "sort_by",
+									"value": "created_at",
+									"description": "Sort by field",
+									"disabled": true
+								},
+								{
+									"key": "sort_order",
+									"value": "desc",
+									"description": "Sort order: asc, desc",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get URL by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/urls/1"
+					},
+					"response": []
+				},
+				{
+					"name": "Create URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"url\": \"https://example.com\",\n  \"status\": \"queued\",\n  \"html_version\": \"<!DOCTYPE html><html>...</html>\",\n  \"login_form\": false,\n  \"tags\": [\n    {\n      \"tag_name\": \"technology\",\n      \"count\": 5\n    },\n    {\n      \"tag_name\": \"web\",\n      \"count\": 3\n    }\n  ],\n  \"links\": [\n    {\n      \"link\": \"https://example.com/about\",\n      \"type\": \"internal\",\n      \"status_code\": 200\n    },\n    {\n      \"link\": \"https://google.com\",\n      \"type\": \"external\",\n      \"status_code\": 200\n    }\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/urls"
+					},
+					"response": []
+				},
+				{
+					"name": "Update URL",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"url\": \"https://updated-example.com\",\n  \"status\": \"done\",\n  \"html_version\": \"<!DOCTYPE html><html><head><title>Updated</title></head></html>\",\n  \"login_form\": true\n}"
+						},
+						"url": "{{baseUrl}}/urls/1"
+					},
+					"response": []
+				},
+				{
+					"name": "Update URL Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"running\"\n}"
+						},
+						"url": "{{baseUrl}}/urls/1/status"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete URL",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/urls/1"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "URL Search (Protected)",
+			"item": [
+				{
+					"name": "Search URL by String",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/urls/search?url=https://example.com",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"urls",
+								"search"
+							],
+							"query": [
+								{
+									"key": "url",
+									"value": "https://example.com"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Fuzzy Search URLs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/urls/search/fuzzy?q=example&limit=5",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"urls",
+								"search",
+								"fuzzy"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "example"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "URL Links (Protected)",
+			"item": [
+				{
+					"name": "Get All URL Links",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/urls/1/links"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Internal Links",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/urls/1/links/internal"
+					},
+					"response": []
+				},
+				{
+					"name": "Get External Links",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/urls/1/links/external"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Broken Links",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/urls/1/links/broken"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "URL Statistics (Protected)",
+			"item": [
+				{
+					"name": "Get URL Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/urls/stats"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Crawl Job Management (Protected)",
+			"item": [
+				{
+					"name": "Start Crawl Job",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"/*if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.job_id) {",
+									"        pm.collectionVariables.set('jobId', responseJson.job_id);",
+									"        pm.test('Crawl job ID saved', function () {",
+									"            pm.expect(responseJson.job_id).to.be.a('string');",
+									"        });",
+									"    }",
+									"}*/"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"url\": \"https://github.com/dsysd-dev\"  \n}"
+						},
+						"url": "{{baseUrl}}/crawl"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Crawl Job",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/crawl/{{jobId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crawl Job History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/crawl-history"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Test Authentication",
+			"item": [
+				{
+					"name": "Test Protected Endpoint Without Token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/urls"
+					},
+					"response": []
+				},
+				{
+					"name": "Test Protected Endpoint With Invalid Token",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer invalid_token_here"
+							}
+						],
+						"url": "{{baseUrl}}/urls"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": {
+			"token": "{{jwtToken}}"
+		}
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwtToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "jobId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
