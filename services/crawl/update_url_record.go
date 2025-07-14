@@ -8,10 +8,10 @@ import (
 )
 
 func (ct *CrawlTask) UpdateURLRecord(url models.URL) error {
-	urlRecord, err := ct.urlRepo.GetByID(ct.crawlJob.URLID)
+	urlRecord, err := ct.urlRepo.GetByID(ct.CrawlJob.URLID)
 	if err != nil {
 		log.Printf("Failed to get URL record: %v", err)
-		crawl_manager.BroadcastError(ct.crawlJob, fmt.Sprintf("Failed to get URL record: %v", err))
+		crawl_manager.BroadcastError(ct.CrawlJob, fmt.Sprintf("Failed to get URL record: %v", err))
 		return err
 	}
 
@@ -21,14 +21,14 @@ func (ct *CrawlTask) UpdateURLRecord(url models.URL) error {
 	urlRecord.LoginForm = url.LoginForm
 	urlRecord.Tags = url.Tags
 	urlRecord.Links = url.Links
-	urlRecord.CrawlJobID = ct.crawlJob.ID
+	urlRecord.JobId = fmt.Sprint(ct.CrawlJob.ID)
 	urlRecord.Status = "done"
 
 	if err := ct.urlRepo.Update(urlRecord); err != nil {
 		log.Printf("Failed to update URL record: %v", err)
-		crawl_manager.BroadcastError(ct.crawlJob, fmt.Sprintf("Failed to save crawl results: %v", err))
+		crawl_manager.BroadcastError(ct.CrawlJob, fmt.Sprintf("Failed to save crawl results: %v", err))
 
-		ct.urlRepo.UpdateStatus(ct.crawlJob.URLID, "error")
+		ct.urlRepo.UpdateStatus(ct.CrawlJob.URLID, "error")
 		return err
 	}
 

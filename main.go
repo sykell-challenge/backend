@@ -23,16 +23,15 @@ import (
 )
 
 func main() {
-	database := db.GetDB()
 	db.MigrateAll()
 
 	// Initialize task queue for background crawling
 	taskq.InitTaskQueue()
 
 	// Initialize handlers
-	urlHandler := url.NewURLHandler(database)
-	userHandler := user.NewUserHandler(database)
-	crawlHandler := crawl.NewCrawlHandler(database)
+	urlHandler := url.NewURLHandler()
+	userHandler := user.NewUserHandler()
+	crawlHandler := crawl.NewCrawlHandler()
 
 	router := gin.Default()
 

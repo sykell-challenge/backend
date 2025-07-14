@@ -1,74 +1,106 @@
 package crawl_manager
 
 import (
+	"fmt"
+	"sykell-challenge/backend/models"
 	"sykell-challenge/backend/services/socket"
 	crawlUtils "sykell-challenge/backend/utils/crawl"
 )
 
+type SocketMessage struct {
+	JobID       string       `json:"jobId"`
+	URL         string       `json:"url"`
+	URLID       string       `json:"urlId"`
+	Status      string       `json:"status"`
+	StartedAt   string       `json:"startedAt,omitempty"`
+	CompletedAt string       `json:"completedAt,omitempty"`
+	Progress    int          `json:"progress,omitempty"`
+	Title       string       `json:"title,omitempty"`
+	StatusCode  int          `json:"statusCode,omitempty"`
+	HTMLVersion string       `json:"htmlVersion,omitempty"`
+	LoginForm   bool         `json:"loginForm,omitempty"`
+	LinksCount  int          `json:"linksCount,omitempty"`
+	TagsCount   int          `json:"tagsCount,omitempty"`
+	Tags        models.Tags  `json:"tags,omitempty"`
+	Links       models.Links `json:"links,omitempty"`
+	Error       string       `json:"error,omitempty"`
+}
+
 func BroadcastJobQueued(jobID, url string, urlID uint) {
-	socket.BroadcastCrawlUpdate("crawl_queued", map[string]interface{}{
-		"jobId":  jobID,
-		"url":    url,
-		"status": "queued",
-		"url_id": urlID,
+	socket.BroadcastCrawlUpdate("crawl_queued", SocketMessage{
+		JobID:  jobID,
+		URL:    url,
+		Status: "queued",
+		URLID:  fmt.Sprintf("%d", urlID),
 	})
 }
 
-func BroadcastJobStarted(job crawlUtils.CrawlJob) {
-	socket.BroadcastCrawlUpdate("crawl_started", map[string]interface{}{
-		"jobId":  job.ID,
-		"url":    job.URL,
-		"status": "running",
-		"url_id": job.URLID,
+func BroadcastJobStarted(job models.CrawlJob) {
+	socket.BroadcastCrawlUpdate("crawl_started", SocketMessage{
+		JobID:     fmt.Sprintf("%d", job.Model.ID),
+		URL:       job.URL,
+		URLID:     fmt.Sprintf("%d", job.URLID),
+		Status:    job.Status,
+		StartedAt: job.StartedAt.Format("2006-01-02 15:04:05"),
+		Progress:  job.Progress,
 	})
 }
 
-func BroadcastHalfCompleted(job crawlUtils.CrawlJob, crawlData crawlUtils.CrawlData) {
-	socket.BroadcastCrawlUpdate("crawl_half_completed", map[string]interface{}{
-		"jobId":        job.ID,
-		"url":          job.URL,
-		"url_id":       job.URLID,
-		"title":        crawlData.MainData.Title,
-		"status_code":  crawlData.MainData.StatusCode,
-		"html_version": crawlData.MainData.HTMLVersion,
-		"login_form":   crawlData.MainData.LoginForm,
-		"tags_count":   len(crawlData.MainData.Tags),
-		"links_count":  crawlData.LinkCount,
-		"status":       "half_completed",
+func BroadcastHalfCompleted(job models.CrawlJob, crawlData crawlUtils.CrawlData) {
+	fmt.Printf("Broadcasting half-completed job: %s", job.ID)
+	fmt.Printf("Job details: %+v", job)
+	fmt.Printf("Crawl data: %+v", crawlData)
+	socket.BroadcastCrawlUpdate("crawl_half_completed", SocketMessage{
+		JobID:       fmt.Sprintf("%d", job.ID),
+		URL:         job.URL,
+		URLID:       fmt.Sprintf("%d", job.URLID),
+		Status:      job.Status,
+		StartedAt:   job.StartedAt.Format("2006-01-02 15:04:05"),
+		Progress:    job.Progress,
+		Title:       crawlData.MainData.Title,
+		StatusCode:  crawlData.MainData.StatusCode,
+		HTMLVersion: crawlData.MainData.HTMLVersion,
+		LoginForm:   crawlData.MainData.LoginForm,
+		TagsCount:   len(crawlData.MainData.Tags),
+		Tags:        crawlData.MainData.Tags,
 	})
 }
 
-func BroadcastCompleted(job crawlUtils.CrawlJob, crawlData crawlUtils.CrawlData) {
-	socket.BroadcastCrawlUpdate("crawl_completed", map[string]interface{}{
-		"jobId":        job.ID,
-		"url":          job.URL,
-		"url_id":       job.URLID,
-		"title":        crawlData.MainData.Title,
-		"status_code":  crawlData.MainData.StatusCode,
-		"html_version": crawlData.MainData.HTMLVersion,
-		"login_form":   crawlData.MainData.LoginForm,
-		"tags_count":   len(crawlData.MainData.Tags),
-		"links_count":  crawlData.LinkCount,
-		"status":       "completed",
-		"links":        crawlData.MainData.Links,
+func BroadcastCompleted(job models.CrawlJob, crawlData crawlUtils.CrawlData) {
+	socket.BroadcastCrawlUpdate("crawl_completed", SocketMessage{
+		JobID:       fmt.Sprintf("%d", job.ID),
+		URL:         job.URL,
+		URLID:       fmt.Sprintf("%d", job.URLID),
+		Status:      job.Status,
+		StartedAt:   job.StartedAt.Format("2006-01-02 15:04:05"),
+		CompletedAt: job.CompletedAt.Format("2006-01-02 15:04:05"),
+		Progress:    job.Progress,
+		Title:       crawlData.MainData.Title,
+		StatusCode:  crawlData.MainData.StatusCode,
+		HTMLVersion: crawlData.MainData.HTMLVersion,
+		LoginForm:   crawlData.MainData.LoginForm,
+		LinksCount:  crawlData.LinkCount,
+		TagsCount:   len(crawlData.MainData.Tags),
+		Tags:        crawlData.MainData.Tags,
+		Links:       crawlData.MainData.Links,
 	})
 }
 
-func BroadcastError(job crawlUtils.CrawlJob, errorMsg string) {
-	socket.BroadcastCrawlUpdate("crawl_error", map[string]interface{}{
-		"jobId":  job.ID,
-		"url":    job.URL,
-		"url_id": job.URLID,
-		"error":  errorMsg,
-		"status": "error",
+func BroadcastError(job models.CrawlJob, errorMsg string) {
+	socket.BroadcastCrawlUpdate("crawl_error", SocketMessage{
+		JobID:  fmt.Sprintf("%d", job.ID),
+		URL:    job.URL,
+		URLID:  fmt.Sprintf("%d", job.URLID),
+		Error:  errorMsg,
+		Status: "error",
 	})
 }
 
-func BroadcastCancelled(job crawlUtils.CrawlJob) {
-	socket.BroadcastCrawlUpdate("crawl_cancelled", map[string]interface{}{
-		"jobId":  job.ID,
-		"url":    job.URL,
-		"url_id": job.URLID,
-		"status": "cancelled",
+func BroadcastCancelled(job models.CrawlJob) {
+	socket.BroadcastCrawlUpdate("crawl_cancelled", SocketMessage{
+		JobID:  fmt.Sprintf("%d", job.ID),
+		URL:    job.URL,
+		URLID:  fmt.Sprintf("%d", job.URLID),
+		Status: "cancelled",
 	})
 }

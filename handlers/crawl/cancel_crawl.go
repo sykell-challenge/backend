@@ -3,8 +3,6 @@ package crawl
 import (
 	"log"
 	"net/http"
-	"sykell-challenge/backend/db"
-	"sykell-challenge/backend/repositories"
 	"sykell-challenge/backend/services/socket"
 	"sykell-challenge/backend/services/taskq"
 
@@ -19,35 +17,31 @@ func (h *CrawlHandler) HandleCancelCrawl(g *gin.Context) {
 		return
 	}
 
-	// Initialize database and repositories
-	database := db.GetDB()
-	urlRepo := repositories.NewURLRepository(database)
+	jobRecord, err := h.jobRepo.GetByID(jobID)
 
-	// Find the URL record by job ID
-	urlRecord, err := urlRepo.GetByJobID(jobID)
 	if err != nil {
 		g.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
 		return
 	}
 
 	// Check if the job is cancellable
-	if urlRecord.Status == "done" {
+	if jobRecord.Status == "done" {
 		g.JSON(http.StatusConflict, gin.H{"error": "Job already completed"})
 		return
 	}
 
-	if urlRecord.Status == "cancelled" {
+	if jobRecord.Status == "cancelled" {
 		g.JSON(http.StatusConflict, gin.H{"error": "Job already cancelled"})
 		return
 	}
 
-	if urlRecord.Status == "error" {
+	if jobRecord.Status == "error" {
 		g.JSON(http.StatusConflict, gin.H{"error": "Job already failed"})
 		return
 	}
 
 	// Try to cancel the running job
-	if urlRecord.Status == "running" {
+	if jobRecord.Status == "running" {
 		if taskq.CancelJob(jobID) {
 			// Job was running and successfully cancelled
 			log.Printf("Cancelled running job: %s", jobID)
@@ -58,7 +52,12 @@ func (h *CrawlHandler) HandleCancelCrawl(g *gin.Context) {
 	}
 
 	// Update URL status to cancelled
-	if err := urlRepo.UpdateStatus(urlRecord.ID, "cancelled"); err != nil {
+	if err := h.urlRepo.UpdateStatus(jobRecord.URLID, "cancelled"); err != nil {
+		g.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update job status"})
+		return
+	}
+
+	if err := h.jobRepo.UpdateStatus(jobID, "cancelled"); err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update job status"})
 		return
 	}
@@ -66,15 +65,15 @@ func (h *CrawlHandler) HandleCancelCrawl(g *gin.Context) {
 	// Broadcast cancellation
 	socket.BroadcastCrawlUpdate("crawl_cancelled", map[string]interface{}{
 		"jobId":  jobID,
-		"url":    urlRecord.URL,
-		"url_id": urlRecord.ID,
+		"url":    jobRecord.URL,
+		"url_id": jobRecord.ID,
 		"status": "cancelled",
 	})
 
 	g.JSON(http.StatusOK, gin.H{
 		"message": "Job cancelled successfully",
 		"job_id":  jobID,
-		"url_id":  urlRecord.ID,
+		"url_id":  jobRecord.ID,
 		"status":  "cancelled",
 	})
 }

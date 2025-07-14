@@ -17,6 +17,7 @@ func (ct *CrawlTask) RunCrawlAsync() (chan crawlUtils.CrawlData, chan error) {
 		}()
 		crawlData := ct.crawlManager.Crawl()
 		crawlDone <- crawlData
+
 	}()
 
 	return crawlDone, crawlErr

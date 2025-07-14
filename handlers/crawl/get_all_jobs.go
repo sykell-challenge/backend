@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"log"
 	"net/http"
 	"sykell-challenge/backend/repositories"
 
@@ -17,6 +16,6 @@ func (h *CrawlHandler) HandleGetAllCrawlJobs(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	log.Printf("jobs %v", jobs)
+
 	c.JSON(http.StatusOK, jobs)
 }

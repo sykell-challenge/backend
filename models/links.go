@@ -9,7 +9,7 @@ import (
 type Link struct {
 	Link       string `json:"link"`
 	Type       string `json:"type"` // internal, external, inaccessible
-	StatusCode int    `json:"status_code"`
+	StatusCode int    `json:"statusCode"`
 }
 
 type Links []Link

@@ -2,6 +2,7 @@ package taskq
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -68,6 +69,8 @@ func UnregisterJob(jobID string) {
 
 // CancelJob cancels a running job by its ID
 func CancelJob(jobID string) bool {
+	fmt.Println("Running Jobs:", runningJobs)
+	fmt.Println("Attempting to cancel job:", jobID)
 	jobsMutex.RLock()
 	cancel, exists := runningJobs[jobID]
 	jobsMutex.RUnlock()

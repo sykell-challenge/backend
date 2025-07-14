@@ -7,28 +7,28 @@ import (
 	"sykell-challenge/backend/utils"
 )
 
-func (pm *CrawlManager) processLinks() {
-	slices.Sort(pm.linksFound)
+func (cm *CrawlManager) processLinks() {
+	slices.Sort(cm.linksFound)
 
-	pm.linksFound = slices.Compact(pm.linksFound)
+	cm.linksFound = slices.Compact(cm.linksFound)
 
-	for _, link := range pm.linksFound {
+	for _, link := range cm.linksFound {
 		if strings.HasPrefix(link, "/") {
-			link = pm.currentHost + link
+			link = cm.currentHost + link
 		}
 
 		if isAvailable, statusCode := utils.IsURLAvailable(link); isAvailable {
-			pm.data.Links = append(pm.data.Links, models.Link{Link: link, Type: pm.determineLinkType(link), StatusCode: statusCode})
+			cm.data.Links = append(cm.data.Links, models.Link{Link: link, Type: cm.determineLinkType(link), StatusCode: statusCode})
 		} else {
-			pm.data.Links = append(pm.data.Links, models.Link{Link: link, Type: "inaccessible", StatusCode: statusCode})
+			cm.data.Links = append(cm.data.Links, models.Link{Link: link, Type: "inaccessible", StatusCode: statusCode})
 		}
 	}
 }
 
-func (pm *CrawlManager) determineLinkType(link string) string {
+func (cm *CrawlManager) determineLinkType(link string) string {
 	if strings.HasPrefix(link, "http") {
 		linkHost := utils.GetHostFromURL(link)
-		if linkHost != pm.currentHost {
+		if linkHost != cm.currentHost {
 			return "external"
 		}
 	}

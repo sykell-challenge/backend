@@ -19,30 +19,26 @@ func (r *CrawlJobRepository) Create(job *models.CrawlJob) error {
 	return r.db.Create(job).Error
 }
 
-func (r *CrawlJobRepository) GetByJobID(jobID string) (*models.CrawlJob, error) {
+func (r *CrawlJobRepository) GetByID(id string) (*models.CrawlJob, error) {
 	var job models.CrawlJob
-	err := r.db.Where("jobId = ?", jobID).First(&job).Error
+	err := r.db.Where("id = ?", id).First(&job).Error
 	if err != nil {
 		return nil, err
 	}
 	return &job, nil
 }
 
-func (r *CrawlJobRepository) GetByID(id uint) (*models.CrawlJob, error) {
-	var job models.CrawlJob
-	err := r.db.First(&job, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &job, nil
-}
-
-func (r *CrawlJobRepository) Update(job *models.CrawlJob) error {
-	return r.db.Save(job).Error
+func (r *CrawlJobRepository) Update(jobID string, job *models.CrawlJob) error {
+	// return r.db.Save(job).Error
+	return r.db.Model(&models.CrawlJob{}).Where("id = ?", jobID).Updates(job).Error
 }
 
 func (r *CrawlJobRepository) UpdateStatus(jobID string, status string) error {
-	return r.db.Model(&models.CrawlJob{}).Where("jobId = ?", jobID).Update("status", status).Error
+	return r.db.Model(&models.CrawlJob{}).Where("id = ?", jobID).Update("status", status).Error
+}
+
+func (r *CrawlJobRepository) UpdateProgress(jobID string, progress int) error {
+	return r.db.Model(&models.CrawlJob{}).Where("id = ?", jobID).Update("progress", progress).Error
 }
 
 func (r *CrawlJobRepository) GetActiveJobs() ([]models.CrawlJob, error) {

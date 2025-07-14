@@ -18,5 +18,5 @@ func (h *URLHandler) GetURLByID(c *gin.Context) {
 		return
 	}
 
-	helpers.SendSuccessResponse(c, gin.H{"data": url})
+	c.JSON(200, url)
 }

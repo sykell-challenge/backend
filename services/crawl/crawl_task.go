@@ -5,38 +5,48 @@ import (
 	"fmt"
 	"log"
 	"sykell-challenge/backend/db"
+	"sykell-challenge/backend/models"
 	"sykell-challenge/backend/repositories"
 	"sykell-challenge/backend/services/taskq"
-	crawlUtils "sykell-challenge/backend/utils/crawl"
 	"sykell-challenge/backend/utils/crawl/crawl_manager"
-
-	"github.com/google/uuid"
+	"time"
 )
 
 type CrawlTask struct {
-	crawlJob     crawlUtils.CrawlJob
+	CrawlJob     models.CrawlJob
 	urlRepo      *repositories.URLRepository
+	jobRepo      *repositories.CrawlJobRepository
 	crawlManager *crawl_manager.CrawlManager
 }
 
 func (ct *CrawlTask) Do(ctx context.Context) error {
-	log.Printf("Starting crawl task for URL: %s (ID: %d)", ct.crawlJob.URL, ct.crawlJob.URLID)
+	log.Printf("Starting crawl task for URL: %s (ID: %d)", ct.CrawlJob.URL, ct.CrawlJob.URLID)
 
 	jobCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	taskq.RegisterJob(ct.crawlJob.ID, cancel)
-	defer taskq.UnregisterJob(ct.crawlJob.ID)
+	jobId := fmt.Sprint(ct.CrawlJob.ID)
+
+	taskq.RegisterJob(jobId, cancel)
+	defer taskq.UnregisterJob(jobId)
 
 	if err := ct.CheckCancelled(jobCtx); err != nil {
 		return err
 	}
 
-	crawl_manager.BroadcastJobStarted(ct.crawlJob)
-
 	if err := ct.UpdateUrlStatus("running"); err != nil {
 		return err
 	}
+
+	ct.jobRepo.UpdateStatus(jobId, "running")
+	ct.CrawlJob.Status = "running"
+	now := time.Now()
+	ct.CrawlJob.StartedAt = &now
+	ct.CrawlJob.Progress = 25
+
+	ct.jobRepo.Update(jobId, &ct.CrawlJob)
+
+	crawl_manager.BroadcastJobStarted(ct.CrawlJob)
 
 	if err := ct.CheckCancelled(jobCtx); err != nil {
 		return err
@@ -51,32 +61,46 @@ func (ct *CrawlTask) Do(ctx context.Context) error {
 
 	if err := ct.UpdateURLRecord(crawlData.MainData); err != nil {
 		log.Printf("Failed to update URL record: %v", err)
-		crawl_manager.BroadcastError(ct.crawlJob, fmt.Sprintf("Failed to save crawl results: %v", err))
+		crawl_manager.BroadcastError(ct.CrawlJob, fmt.Sprintf("Failed to save crawl results: %v", err))
 		return err
 	}
 
-	crawl_manager.BroadcastHalfCompleted(ct.crawlJob, crawlData)
+	ct.CrawlJob.Status = "completed"
+	now = time.Now()
+	ct.CrawlJob.CompletedAt = &now
+	ct.CrawlJob.Progress = 100 // Set progress to 100% on completion
 
-	log.Printf("Crawl task completed successfully for URL: %s", ct.crawlJob.URL)
+	ct.jobRepo.Update(jobId, &ct.CrawlJob)
+
+	crawl_manager.BroadcastCompleted(ct.CrawlJob, crawlData)
+
+	log.Printf("Crawl task completed successfully for URL: %s", ct.CrawlJob.URL)
 	return nil
 }
 
 func CreateCrawlTask(url string, urlID uint) *CrawlTask {
 	db := db.GetDB()
 	urlRepo := repositories.NewURLRepository(db)
+	jobsRepo := repositories.NewCrawlJobRepository(db)
 	crawlManager := crawl_manager.InitializeCrawlManager(url)
 
+	startedAt := time.Now()
+
+	crawlJob := models.CrawlJob{
+		URL:       url,
+		URLID:     urlID,
+		Status:    "queued",
+		StartedAt: &startedAt,
+	}
+
+	jobsRepo.Create(&crawlJob)
+
+	crawl_manager.BroadcastJobQueued(fmt.Sprintf("%d", crawlJob.ID), url, urlID)
+
 	return &CrawlTask{
-		crawlJob: crawlUtils.CrawlJob{
-			ID:    uuid.New().String(),
-			URL:   url,
-			URLID: urlID,
-		},
+		CrawlJob:     crawlJob,
 		urlRepo:      urlRepo,
+		jobRepo:      jobsRepo,
 		crawlManager: crawlManager,
 	}
-}
-
-func (ct *CrawlTask) GetJobID() string {
-	return ct.crawlJob.ID
 }

@@ -81,7 +81,7 @@
                     &nbsp;&nbsp;Tags: ${data.tags_count}<br>
                     &nbsp;&nbsp;Links Found: ${data.links_count} (processing...)<br>
                     &nbsp;&nbsp;Login Form: ${data.login_form}`;
-                addToLog(message, 'half_completed');
+                addToLog(JSON.stringify(data), 'half_completed');
             });
 
             socket.on('crawl_completed', (data) => {

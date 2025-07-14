@@ -1,10 +1,9 @@
 package user
 
 import (
+	"sykell-challenge/backend/db"
 	"sykell-challenge/backend/repositories"
 	"sykell-challenge/backend/services"
-
-	"gorm.io/gorm"
 )
 
 type UserHandler struct {
@@ -12,7 +11,8 @@ type UserHandler struct {
 	authService *services.AuthService
 }
 
-func NewUserHandler(db *gorm.DB) *UserHandler {
+func NewUserHandler() *UserHandler {
+	db := db.GetDB()
 	userRepo := repositories.NewUserRepository(db)
 	return &UserHandler{
 		userService: services.NewUserService(userRepo),

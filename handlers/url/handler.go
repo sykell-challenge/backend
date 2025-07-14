@@ -1,16 +1,16 @@
 package url
 
 import (
+	"sykell-challenge/backend/db"
 	"sykell-challenge/backend/repositories"
-
-	"gorm.io/gorm"
 )
 
 type URLHandler struct {
 	urlRepo *repositories.URLRepository
 }
 
-func NewURLHandler(db *gorm.DB) *URLHandler {
+func NewURLHandler() *URLHandler {
+	db := db.GetDB()
 	return &URLHandler{
 		urlRepo: repositories.NewURLRepository(db),
 	}

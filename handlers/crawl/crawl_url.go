@@ -2,11 +2,13 @@ package crawl
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"sykell-challenge/backend/models"
 	"sykell-challenge/backend/services/crawl"
 	"sykell-challenge/backend/services/taskq"
+	"sykell-challenge/backend/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,6 +28,11 @@ func (h *CrawlHandler) HandleCrawlURL(g *gin.Context) {
 		return
 	}
 
+	if isUrlAvailable, statusCode := utils.IsURLAvailable(request.URL); !isUrlAvailable {
+		g.JSON(statusCode, gin.H{"error": gin.H{"message": "URL is not available", "code": statusCode}})
+		return
+	}
+
 	newURL := models.URL{
 		URL:    request.URL,
 		Status: "queued",
@@ -33,37 +40,41 @@ func (h *CrawlHandler) HandleCrawlURL(g *gin.Context) {
 
 	// store newURL in database
 	if err := h.urlRepo.Create(&newURL); err != nil {
-		g.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create URL record"})
+		g.JSON(http.StatusInternalServerError, gin.H{"error": gin.H{
+			"message": "Failed to create URL record",
+			"code":    http.StatusInternalServerError,
+		}})
 		return
 	}
-	g.JSON(200, newURL)
 
 	crawlTask := crawl.CreateCrawlTask(request.URL, newURL.ID)
 
 	// update url in database with jobid
-	newURL.JobId = crawlTask.GetJobID()
+	newURL.JobId = fmt.Sprintf("%d", crawlTask.CrawlJob.ID)
 	if err := h.urlRepo.Update(&newURL); err != nil {
-		g.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update URL with job ID"})
+		g.JSON(http.StatusInternalServerError, gin.H{"error": gin.H{
+			"message": "Failed to update URL with job ID",
+			"code":    http.StatusInternalServerError,
+		}})
 		return
 	}
 
 	// start crawling in background
 	ctx := context.Background()
-	taskID, err := taskq.EnqueueTask(ctx, crawlTask)
+	_, err := taskq.EnqueueTask(ctx, crawlTask)
 	if err != nil {
 		h.urlRepo.UpdateStatus(newURL.ID, "error")
-		g.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to enqueue crawl task"})
+		g.JSON(http.StatusInternalServerError, gin.H{"error": gin.H{
+			"message": "Failed to enqueue crawl task",
+			"code":    http.StatusInternalServerError,
+		}})
 		return
 	}
 
 	// send response
 	g.JSON(http.StatusCreated, gin.H{
-		"message": "Crawl job queued successfully",
-		"jobId":   crawlTask.GetJobID(),
-		"taskId":  taskID,
-		"urlId":   newURL.ID,
-		"url":     request.URL,
-		"status":  "queued",
+		"alreadyCrawled": false,
+		"data":           newURL,
 	})
 }
 
@@ -82,7 +93,10 @@ func (h *CrawlHandler) isUrlAlreadyCrawled(g *gin.Context, urlString string) boo
 	existingURL, err := h.urlRepo.GetByURL(urlString)
 	if err == nil && existingURL != nil {
 
-		g.JSON(http.StatusOK, existingURL)
+		g.JSON(http.StatusOK, gin.H{
+			"alreadyCrawled": true,
+			"data":           existingURL,
+		})
 		return true
 	}
 

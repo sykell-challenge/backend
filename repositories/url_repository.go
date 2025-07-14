@@ -3,6 +3,7 @@ package repositories
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sykell-challenge/backend/models"
 
@@ -43,7 +44,21 @@ func (r *URLRepository) GetByStatus(status string) ([]models.URL, error) {
 }
 
 func (r *URLRepository) Update(url *models.URL) error {
-	return r.db.Save(url).Error
+	log.Printf("Updating URL: %+v", url)
+
+	existing, err := r.GetByURL(url.URL)
+	if err != nil {
+		return err
+	}
+
+	if err := r.db.Model(&existing).Updates(url).Error; err != nil {
+		return err
+	}
+
+	*url = *existing // assign updated model to the incoming model
+
+	log.Printf("Updated URL: %+v", url)
+	return nil
 }
 
 func (r *URLRepository) UpdateStatus(id uint, status string) error {
@@ -69,7 +84,7 @@ func (r *URLRepository) GetByURL(urlString string) (*models.URL, error) {
 
 func (r *URLRepository) GetByJobID(jobID string) (*models.URL, error) {
 	var url models.URL
-	err := r.db.Where("crawl_job_id = ?", jobID).First(&url).Error
+	err := r.db.Where("job_id = ?", jobID).First(&url).Error
 	if err != nil {
 		return nil, err
 	}
