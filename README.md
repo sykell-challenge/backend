@@ -18,7 +18,19 @@ For details on setup, see the [setup](https://github.com/sykell-challenge/setup)
 
 
 ## APIs
+
 Import the Postman collection in the `docs` folder to test out the APIs.
+
 ## ER Diagram
 
 ![alt text](<docs/ER Diagram.png>)
+
+## Next Steps
+
+- Microservice architecture
+- Automatic cleanup of long running jobs or very old jobs
+- Seed database for better testing
+- Writing tests
+- Automatic generation of Open API Specs / Swagger UI Docs
+- Admin APIs
+- Refresh tokens
